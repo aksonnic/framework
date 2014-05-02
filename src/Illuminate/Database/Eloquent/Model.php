@@ -193,6 +193,13 @@ abstract class Model implements ArrayAccess, ArrayableInterface, JsonableInterfa
 	protected static $globalScopes = array();
 
 	/**
+	 * The array of dynamic methods on the model.
+	 *
+	 * @var array
+	 */
+	protected static $dynamicMethods = array();
+
+	/**
 	 * Indicates if all mass assignment is enabled.
 	 *
 	 * @var bool
@@ -327,7 +334,7 @@ abstract class Model implements ArrayAccess, ArrayableInterface, JsonableInterfa
 	}
 
 	/**
-	 * Get a global scope registered with the modal.
+	 * Get a global scope registered with the model.
 	 *
 	 * @param  \Illuminate\Database\Eloquent\ScopeInterface  $scope
 	 * @return \Illuminate\Database\Eloquent\ScopeInterface|null
@@ -349,6 +356,41 @@ abstract class Model implements ArrayAccess, ArrayableInterface, JsonableInterfa
 	{
 		return array_get(static::$globalScopes, get_class($this), []);
 	}
+
+	/**
+	 * Register a new dynamic method on the model.
+	 *
+	 * @param  string $name
+	 * @param  Closure $closure
+	 * @return void
+	 */
+	public static function addDynamicMethod($name, $closure)
+	{
+		static::$dynamicMethods[get_called_class()][$name] = $closure;
+	}
+
+	/**
+	 * Determine if a model has a dynamic method.
+	 *
+	 * @param  string $name
+	 * @return bool
+	 */
+	public static function hasDynamicMethod($name)
+	{
+		return isset( static::$dynamicMethods[get_called_class()][$name] );
+	}
+
+	/**
+	 * Get a dynamic method registered with the model.
+	 *
+	 * @param  string $name
+	 * @return Closure
+	 */
+	public static function getDynamicMethod($name)
+	{
+		return static::hasDynamicMethod($name) ? static::$dynamicMethods[get_called_class()][$name] : null;
+	}
+
 
 	/**
 	 * Register an observer with the Model.
@@ -2912,7 +2954,11 @@ abstract class Model implements ArrayAccess, ArrayableInterface, JsonableInterfa
 	 */
 	public function __call($method, $parameters)
 	{
-		if (in_array($method, array('increment', 'decrement')))
+		if ( $this->hasDynamicMethod( $method ) ) {
+			array_unshift($parameters, $this, $method );
+			return call_user_func_array($this->getDynamicMethod($method), $parameters);
+		}
+		elseif (in_array($method, array('increment', 'decrement')))
 		{
 			return call_user_func_array(array($this, $method), $parameters);
 		}
