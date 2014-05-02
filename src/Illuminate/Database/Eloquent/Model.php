@@ -377,7 +377,7 @@ abstract class Model implements ArrayAccess, ArrayableInterface, JsonableInterfa
 	 */
 	public static function hasDynamicMethod($name)
 	{
-		return isset( static::$dynamicMethods[get_called_class()][$name] );
+		return isset(static::$dynamicMethods[get_called_class()][$name]);
 	}
 
 	/**
@@ -2954,8 +2954,8 @@ abstract class Model implements ArrayAccess, ArrayableInterface, JsonableInterfa
 	 */
 	public function __call($method, $parameters)
 	{
-		if ( $this->hasDynamicMethod( $method ) ) {
-			array_unshift($parameters, $this, $method );
+		if ( $this->hasDynamicMethod($method) ) {
+			array_unshift($parameters, $this, $method);
 			return call_user_func_array($this->getDynamicMethod($method), $parameters);
 		}
 		elseif (in_array($method, array('increment', 'decrement')))
